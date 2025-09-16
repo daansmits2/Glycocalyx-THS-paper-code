@@ -18,6 +18,28 @@ Filebasename = File.nameWithoutExtension;
 
 imagedir = getDirectory("image");
 
+if (indexOf(Filebasename, "ALCAM")!=1 || indexOf(Filebasename, "HABP") != -1) {
+    // Code to execute only if "ALCAM-" is found in Filebasename
+    print("ALCAM found in filename: " + Filebasename);
+    // your code here
+
+
+chromatic_aberration_correction = getBoolean("Control for chromatic abberation by shifting the \n far red channel (ALCAM) one slice down?");
+
+
+if(chromatic_aberration_correction==1){
+	slicenr = nSlices;
+	setSlice(slicenr);
+	newslicenr=slicenr+1;
+	run("Add Slice");
+	setSlice(1);
+	run("Slice Keeper", "first=2 last="+newslicenr+" increment=1");
+}
+
+
+
+}
+
 
 newdir=imagedir+Filebasename;
 
