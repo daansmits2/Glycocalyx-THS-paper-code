@@ -4023,6 +4023,8 @@ for(u in 1:length(unique_numbers)){
     filter(Orientation=="Leading edge protrusion" & !is.na(Peaklocation_X) | 
            Orientation=="Retraction fiber" & !is.na(Peaklocation_X))
 
+
+
 noncluster_data <- protrusion_data %>%  group_by(number, CellNR, Orientation, Signal_type, Length_label) %>%  
   dplyr::summarize(across(where(is.numeric), mean, na.rm=TRUE)) %>%  filter(Orientation=="Cellbody" | Orientation=="Bleb")
 
@@ -4078,8 +4080,57 @@ clusterproperties <- clusterproperties %>%  filter(Length_label!="Cell body")
   
   }
   
+  
+  
+  clusterproperties <- clusterproperties %>%  mutate(CellNR = as.numeric(CellNR),
+                                                     expnr = ifelse(CellNR<100, 1, 2),
+                                                     expnr = ifelse(CellNR>=200, 3, expnr)
+  )
+  
   leadingedge.gcx <- compare.data(clusterproperties, "Leading edge protrusion") +   scale_x_discrete(labels = c("Tip", "Shaft", "Base")) 
   
+  
+  leadingedge.stats <- subset(clusterproperties, Orientation=="Retraction fiber")
+  
+  
+  pairwise.results <- pairwise.wilcox.test(x=leadingedge.stats$Gcx_cellbody_corrected, g=leadingedge.stats$Length_label,p.adjust.method = "bonferroni")
+  print(pairwise.results)
+  
+  library(rstatix)
+    leadingedge.stats %>%  ungroup() %>% rstatix::kruskal_test(Gcx_cellbody_corrected ~ Length_label) 
+    leadingedge.stats %>%  ungroup() %>% rstatix::kruskal_effsize(Gcx_cellbody_corrected ~ Length_label)
+  
+  rstatix::kruskal_effsize(leadingedge.stats, Gcx_cellbody_corrected ~ Length_label, ci = TRUE)
+  
+  leadingedge.stats <- leadingedge.stats %>%
+    ungroup() %>% 
+    group_by(expnr, Length_label) %>%
+    arrange(Orientation) %>% 
+    
+    dplyr::summarise(
+      n = n(),
+      median = median(Gcx_cellbody_corrected, na.rm = TRUE),
+      Q1 = quantile(Gcx_cellbody_corrected, 0.25, na.rm = TRUE),
+      Q3 = quantile(Gcx_cellbody_corrected, 0.75, na.rm = TRUE),
+      IQR = IQR(Gcx_cellbody_corrected, na.rm = TRUE),
+      lower_whisker = max(min(Gcx_cellbody_corrected, na.rm = TRUE), Q1 - 1.5 * IQR),
+      upper_whisker = min(max(Gcx_cellbody_corrected, na.rm = TRUE), Q3 + 1.5 * IQR)
+    ) %>%
+    ungroup() 
+  
+  print(leadingedge.stats)
+  
+  shapiro.test(leadingedge.stats$Gcx_cellbody_corrected[leadingedge.stats$Length_label=="Protrusion base"])
+  
+
+  pairwise.results <- pairwise.wilcox.test(x=leadingedge.stats$median, g=leadingedge.stats$Length_label,p.adjust.method = "bonferroni")
+  print(pairwise.results)
+  leadingedge.stats %>%  aov(median ~ Length_label, data = .) %>%  summary()
+  leadingedge.stats %>%   tukey_hsd(median ~ Length_label) 
+  dunn.test::dunn.test(x=leadingedge.stats$median, g=leadingedge.stats$Length_label,
+                       method = "bonferroni")
+  
+
   
   bleb.gcx <- compare.data(clusterproperties, "Bleb")+   scale_x_discrete(labels = c("Peribleb zone", "Neck", "Bleb", "Apex")) 
   retraction.gcx <- compare.data(clusterproperties, "Retraction fiber")+   scale_x_discrete(labels = c("Base", "Shaft", "Tip")) 
@@ -4175,7 +4226,53 @@ clusterproperties <- clusterproperties %>%  filter(Length_label!="Cell body")
   }
   
   leadingedge.b1int <- compare.data(clusterproperties, "Leading edge protrusion")+   scale_x_discrete(labels = c("Tip", "Shaft", "Base")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
-  bleb.b1int <- compare.data(clusterproperties, "Bleb")+   scale_x_discrete(labels = c("Peribleb zone", "Neck", "Bleb", "Apex")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
+  
+  clusterproperties <- clusterproperties %>%  mutate(CellNR = as.numeric(CellNR),
+                                                     expnr = ifelse(CellNR<100, 1, 2),
+                                                     expnr = ifelse(CellNR>=200, 3, expnr)
+  )
+  
+  leadingedge.gcx <- compare.data(clusterproperties, "Leading edge protrusion") +   scale_x_discrete(labels = c("Tip", "Shaft", "Base")) 
+  
+  
+  leadingedge.stats <- subset(clusterproperties, Orientation=="Leading edge protrusion")
+  
+  
+  shapiro.test(leadingedge.stats$B1int_cellbody_corrected[leadingedge.stats$Length_label=="Protrusion base"])
+  
+  leadingedge.stats <- leadingedge.stats %>%
+    ungroup() %>% 
+    group_by(expnr, Length_label) %>%
+    arrange(Orientation) %>% 
+    
+    dplyr::summarise(
+      n = n(),
+      median = median(B1int_cellbody_corrected, na.rm = TRUE),
+      Q1 = quantile(B1int_cellbody_corrected, 0.25, na.rm = TRUE),
+      Q3 = quantile(B1int_cellbody_corrected, 0.75, na.rm = TRUE),
+      IQR = IQR(B1int_cellbody_corrected, na.rm = TRUE),
+      lower_whisker = max(min(B1int_cellbody_corrected, na.rm = TRUE), Q1 - 1.5 * IQR),
+      upper_whisker = min(max(B1int_cellbody_corrected, na.rm = TRUE), Q3 + 1.5 * IQR)
+    ) %>%
+    ungroup() 
+  
+  print(leadingedge.stats)
+  
+  
+  
+  pairwise.results <- pairwise.wilcox.test(x=leadingedge.stats$Gcx_cellbody_corrected, g=leadingedge.stats$Length_label,p.adjust.method = "bonferroni")
+  print(pairwise.results)
+  leadingedge.stats %>%  aov(median ~ Length_label, data = .) %>%  summary()
+  leadingedge.stats %>%   tukey_hsd(median ~ Length_label) 
+  dunn.test::dunn.test(x=leadingedge.stats$median, g=leadingedge.stats$Length_label,
+                       method = "bonferroni")
+  
+  
+  
+  
+  
+  
+   bleb.b1int <- compare.data(clusterproperties, "Bleb")+   scale_x_discrete(labels = c("Peribleb zone", "Neck", "Bleb", "Apex")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
   retraction.b1int <- compare.data(clusterproperties, "Retraction fiber")+   scale_x_discrete(labels = c("Base", "Shaft", "Tip")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
   
 
@@ -4553,6 +4650,8 @@ clusterproperties <- clusterproperties %>%  filter(Length_label!="Cell body")
            )
   
   
+  
+  
   breaks_log10 <- function(x) {
     library(scales)
     low <- floor(log10(min(x)))
@@ -4648,7 +4747,13 @@ clusterproperties <- clusterproperties %>%  filter(Length_label!="Cell body")
   enrichment <- enrichment + annotations + annotations2 + ylim(c(FALSE, 1.8))
   print(enrichment)
   
+
   
+  library(rstatix)
+  clusters_summarized %>%  ungroup() %>% rstatix::kruskal_test(Gcx_enrichment ~ Orientation) 
+  clusters_summarized %>%  ungroup() %>% rstatix::kruskal_effsize(Gcx_enrichment ~ Orientation) 
+  
+
   
   pdf("violins.gcx.enrichment.pdf", width=2, height=1.5)
   print(enrichment)
@@ -4695,6 +4800,11 @@ clusterproperties <- clusterproperties %>%  filter(Length_label!="Cell body")
   pairwise.results <- pairwise.wilcox.test(x=clusters_summarized$B1int_enrichment, g=clusters_summarized$Orientation,
                                            p.adjust.method = "bonferroni"
   )
+  
+  library(rstatix)
+  clusters_summarized %>%  ungroup() %>% rstatix::kruskal_test(B1int ~ Orientation) 
+  clusters_summarized %>%  ungroup() %>% rstatix::kruskal_effsize(B1int ~ Orientation) 
+  
   
   cbvso <- pairwise.results$p.value[2,1]
   ivso <- pairwise.results$p.value[2,2]
@@ -4842,6 +4952,10 @@ ggplot(subset(p), aes(x=Segregation_distance, y= B1int))+
   pdf("violins.segregation.distance.pdf", width=2, height=1)
   print(violins.segregation.distance)
   dev.off()
+  
+  
+  unpaired.segregationdistance.data %>%  ungroup() %>% rstatix::kruskal_effsize(Segregation_distance ~ Orientation) 
+  
   
   
    ## stratify for Gcx intensity: plot  - Gcx at edge vs. integrin enrichment------
@@ -5292,6 +5406,54 @@ Fc.signallocal <- Gcx.signal/Gcx.local.bg
    theme(legend.position="none")
  
  print(violin.B1int.enrichment)
+ 
+ 
+ 
+ leadingedge.stats <- subset(clusterproperties)
+ 
+ 
+ pairwise.results <- pairwise.wilcox.test(x=clusterproperties$B1int_enrichment, 
+                                          g=clusterproperties$Gcx_content_classification_localbg,p.adjust.method = "bonferroni")
+ print(pairwise.results)
+ 
+ library(rstatix)
+ leadingedge.stats %>%  ungroup() %>% rstatix::kruskal_test(B1int_enrichment ~ Gcx_content_classification_localbg) 
+ leadingedge.stats %>%  ungroup() %>% rstatix::kruskal_effsize(B1int_enrichment ~ Gcx_content_classification_localbg)
+ 
+ rstatix::kruskal_effsize(leadingedge.stats, Gcx_cellbody_corrected ~ Length_label, ci = TRUE)
+ 
+ leadingedge.stats <- leadingedge.stats %>%
+   ungroup() %>% 
+   group_by(expnr, Length_label) %>%
+   arrange(Orientation) %>% 
+   
+   dplyr::summarise(
+     n = n(),
+     median = median(Gcx_cellbody_corrected, na.rm = TRUE),
+     Q1 = quantile(Gcx_cellbody_corrected, 0.25, na.rm = TRUE),
+     Q3 = quantile(Gcx_cellbody_corrected, 0.75, na.rm = TRUE),
+     IQR = IQR(Gcx_cellbody_corrected, na.rm = TRUE),
+     lower_whisker = max(min(Gcx_cellbody_corrected, na.rm = TRUE), Q1 - 1.5 * IQR),
+     upper_whisker = min(max(Gcx_cellbody_corrected, na.rm = TRUE), Q3 + 1.5 * IQR)
+   ) %>%
+   ungroup() 
+ 
+ print(leadingedge.stats)
+ 
+ shapiro.test(leadingedge.stats$Gcx_cellbody_corrected[leadingedge.stats$Length_label=="Protrusion base"])
+ 
+ 
+ pairwise.results <- pairwise.wilcox.test(x=leadingedge.stats$median, g=leadingedge.stats$Length_label,p.adjust.method = "bonferroni")
+ print(pairwise.results)
+ leadingedge.stats %>%  aov(median ~ Length_label, data = .) %>%  summary()
+ leadingedge.stats %>%   tukey_hsd(median ~ Length_label) 
+ dunn.test::dunn.test(x=leadingedge.stats$median, g=leadingedge.stats$Length_label,
+                      method = "bonferroni")
+ 
+ 
+ 
+ 
+ 
  
  
  boxplot_stats <- clusterproperties %>%

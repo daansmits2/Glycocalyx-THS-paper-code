@@ -299,11 +299,11 @@ data <- data %>%  mutate(Symmetry = ifelse(Total_region !="Transitionzone", "Sym
 data <- data %>% mutate(Segment = ifelse(Segment=="Cell-cell-contact", "Cell-cell contact", Segment))
 
 ## Calculate average signal and stdev per line thickness ------
-thicknesses <- data %>%  group_by(ImageNR, CellNR, RoiNR, Bleached, Linethickness, Channel) %>% summarise(Mean = mean(Intensity),
+thicknesses <- data %>%  group_by(ImageNR, CellNR, RoiNR, Bleached, Linethickness, Channel) %>% dplyr::summarise(Mean = mean(Intensity),
                                                                                                  Stdev = sd(Intensity),
                                                                                                  ratio = Mean/Stdev
                                                                                                  ) %>% 
-  filter(Bleached=="Unbleached") %>%  filter(Channel=="Gcx")
+  dplyr::filter(Bleached=="Unbleached") %>%  dplyr::filter(Channel=="Gcx")
 
 ggplot(thicknesses, aes(x=Linethickness, y=ratio))+
   geom_violin(scale="width", aes(group=as.factor(Linethickness)))+
@@ -318,7 +318,7 @@ ggplot(thicknesses, aes(x=Linethickness, y=ratio))+
 boxplot_stats <- thicknesses %>%
   ungroup() %>%
   group_by(Linethickness) %>%
-  summarise(
+  dplyr::summarise(
     n = n(),
     mean = mean(ratio, na.rm = TRUE),
     sd = sd(ratio, na.rm = TRUE),
@@ -340,8 +340,8 @@ ggplot(thicknesses, aes(x=Mean, y=Stdev, color=Linethickness, group=as.factor(Li
   geom_line()+
   scale_color_viridis(option="turbo")
 
-
-smry_thickness <- thicknesses %>%  group_by(Linethickness) %>% summarise(ratio  = median(ratio)) 
+library(dplyr)
+smry_thickness <- thicknesses %>%  group_by(Linethickness) %>% dplyr::summarise(ratio  = median(ratio)) 
 
 Linethickness_pixel <- filter(smry_thickness, Linethickness == which.max(ratio))$Linethickness
 
@@ -397,7 +397,7 @@ data <- data %>%
          X_group_range = paste0(X_group, "/", X_group + grouped_pixels - 1)
          ) %>% 
   group_by(RoiNR, CellNR, ImageNR, X_group, Bleached, Frame, Total_region, Channel, Image) %>% 
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}")
   ) %>%
   ungroup()
@@ -499,7 +499,7 @@ group_1_data <- data %>%
   group_by(RoiNR, CellNR, ImageNR, Bleached, Total_region, Channel, Frame_bin, Side, X_micron) %>% 
   filter(RoiNR == 1) %>%  # Filter for group 1 (adjust condition as needed)
   mutate(rows = row_number()) %>% 
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}")
   ) %>%
   ungroup() %>%
@@ -511,7 +511,7 @@ file_averaged <- data %>%
   group_by(RoiNR, CellNR, ImageNR, Bleached, Total_region, Channel, Side, X_micron, Image) %>%
   mutate(Frame_bin = ceiling(Frame / grouped_frames)) %>%
   group_by(RoiNR, CellNR, ImageNR, Bleached, Total_region, Channel, Frame_bin, Side, X_micron, Image) %>%
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}")
   ) %>%
   ungroup() %>%
@@ -559,7 +559,7 @@ plot_xgroup= F
 if(plot_xgroup==T){
 s <- subset(data)
 
-sum <- s %>%  group_by(X_group, Side) %>% summarise(
+sum <- s %>%  group_by(X_group, Side) %>% dplyr::summarise(
   across(where(is.numeric), ~ mean(.), .names = "{.col}")
 ) 
 
@@ -850,7 +850,7 @@ recoverybelowthr = 0.4
   
   sd <- data_with_fit %>%  
     group_by(ImageNR, CellNR, X_group, RoiNR, ExpNR, Total_region, Side, Channel, Image) %>% 
-    summarise(stdev = sd(I_minmax_cor),
+    dplyr::summarise(stdev = sd(I_minmax_cor),
     )
   
   printallplots = F
@@ -1102,7 +1102,7 @@ spatialprofile <- ggplot(subset(file,Bleached=="Unbleached" & Channel=="Gcx" & R
 print(spatialprofile)
 
 framesmry <- file %>%  group_by(ImageNR, CellNR, Side, Bleached, RoiNR, ExpNR, Total_region, X_group, Include, Channel, Section, X_micron) %>%  
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}")
   ) %>% filter(Bleached=="Unbleached") %>%  filter(Total_region!="Granule")
 
@@ -1181,7 +1181,7 @@ file <- file %>% ungroup() %>% group_by(ImageNR, CellNR, RoiNR, ExpNR, Total_reg
 
 
 summary <- file %>%  group_by(ImageNR, CellNR, Bleached, RoiNR, ExpNR, Channel,Section) %>%  
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}"),
     count = n()
   ) %>% 
@@ -1214,7 +1214,7 @@ file <- file %>%  ungroup () %>% group_by(ImageNR, CellNR, Bleached, ExpNR, Tota
 ## summarize without taking into account the transition zone
 
 summary <- file %>%  group_by(ImageNR, Image, CellNR, Side, Bleached, RoiNR, ExpNR, Total_region, X_group, Include, Channel, Insidethreshold) %>%  
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}"),
     count = n()
   ) %>%   
@@ -1292,6 +1292,31 @@ geom_line(aes(group=RoiNR, color=as.factor(ExpNR)))+
 print(trajectory_oneplot)
 
 
+## extract boxplot statistics 
+boxplot_stats <- summary %>%
+  ungroup() %>%
+  group_by(RoiNR, Total_region) %>%
+  dplyr::summarise(
+    n = n(),
+    mean = mean(t_half, na.rm = TRUE),
+    sd = sd(t_half, na.rm = TRUE),
+    median = median(t_half, na.rm = TRUE),
+    Q1 = quantile(t_half, 0.25, na.rm = TRUE),
+    Q3 = quantile(t_half, 0.75, na.rm = TRUE),
+    IQR = IQR(t_half, na.rm = TRUE),
+    lower_whisker = max(min(t_half, na.rm = TRUE), Q1 - 1.5 * IQR),
+    upper_whisker = min(max(t_half, na.rm = TRUE), Q3 + 1.5 * IQR),
+    ci_lower = mean - qt(0.975, df = n - 1) * sd / sqrt(n),
+    ci_upper = mean + qt(0.975, df = n - 1) * sd / sqrt(n)
+  ) %>%
+  ungroup() %>% arrange(Total_region)
+
+print(boxplot_stats, n=100)
+
+
+
+
+
 
 # Create interaction term
 summary$Group <- interaction(summary$Side, summary$Total_region, summary$Insidethreshold)
@@ -1300,7 +1325,7 @@ set <- summary
 
 
 
-summary_all <- set %>% group_by(Total_region, Side, Channel) %>%   summarise(
+summary_all <- set %>% group_by(Total_region, Side, Channel) %>%   dplyr::summarise(
   across(where(is.numeric), ~ mean(.), .names = "{.col}")
 )
 
@@ -1309,9 +1334,9 @@ summary_all <- set %>% group_by(Total_region, Side, Channel) %>%   summarise(
 library(FSA)  # For Dunn's test
 kruskal.test(t_half ~ Total_region, data = summary_all)
 
-dunn.results.perexp <- dunnTest(t_half ~ Group, data = summary_all, method = "sidak")
+#dunn.results.perexp <- dunnTest(t_half ~ Group, data = summary_all, method = "sidak")
 
-print(dunn.results.perexp$res)
+#print(dunn.results.perexp$res)
 
 
 
@@ -1343,8 +1368,20 @@ violins <- ggplot(subset(set, Total_region=="Transitionzone"), aes(x=interaction
 print(violins)
 
 
+
+
+
+
+ncells <- set %>%  group_by(ImageNR, Image, CellNR, Bleached, RoiNR, ExpNR) %>%  
+  dplyr::summarise(
+    across(where(is.numeric), ~ mean(.), .names = "{.col}"),
+    count = n()
+  ) 
+
+
+
 summary_percell <- set %>%  group_by(ImageNR, Image, CellNR, Side, Bleached, RoiNR, ExpNR, Total_region, Include, Channel, Insidethreshold, Group) %>%  
-  summarise(
+  dplyr::summarise(
     across(where(is.numeric), ~ mean(.), .names = "{.col}"),
     count = n()
   ) 
@@ -1361,13 +1398,19 @@ print(dunn.results.perexp$res)
 violins_percell <- ggplot(subset(summary_percell), aes(x=interaction(Total_region), y=t_half, fill=Total_region))+
   geom_violin(scale = "width", position= position_dodge(.9), trim=T)+
   geom_boxplot(width=0.4, outlier.shape=NA, position=position_dodge(.9))+
-  #geom_point(position=position_dodge(.9))+
+  geom_point(position=position_dodge(.9))+
   facet_wrap(.~Channel)+
   theme(legend.position = "none")
 print(violins_percell)
 
 selection <- summary_percell %>% ungroup() %>% arrange(Total_region) %>% dplyr::select(Total_region, t_half)
 print(selection,n=130)
+
+
+pairwise.results <- pairwise.wilcox.test(x=summary_percell$t_half, g=summary_percell$Total_region,p.adjust.method = "bonferroni")
+print(pairwise.results)
+library(rstatix)
+summary_percell %>%  ungroup() %>% rstatix::kruskal_effsize(t_half ~ Total_region) 
 
 
 boxplot_stats <- selection %>%
@@ -1496,7 +1539,6 @@ trajectory_oneplot <- ggplot(subset(summary, Total_region=="Transitionzone" & Ro
   scale_color_viridis(option="turbo")+
   facet_wrap(.~Total_region)
 print(trajectory_oneplot)
-
 
 
 

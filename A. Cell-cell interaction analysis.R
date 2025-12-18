@@ -1530,10 +1530,35 @@ mean_value_relative_percell <- mean(data_optimallinethickness$Value_relative[dat
 sd_value_relative_percell <- sd(data_optimallinethickness$Value_relative[data_optimallinethickness$Section=="Cell-cell-contact"])
 expected_value_relative_percell <- 2
 
+
+
+d <- (mean_value_relative_percell - expected_value_relative_percell) / sd_value_relative_percell
+d
+
 pv_t.test <- calculate_pv_t.test(expected_value_relative_percell,
                     mean_value_relative_percell,
                     sd_value_relative_percell,
                     n_value_relative_percell)
+
+pv_t.test
+
+wilcox_epsilon2 <- function(x, mu = 0) {
+  # Perform Wilcoxon signed-rank test
+  test <- wilcox.test(x, mu = mu, exact = FALSE, correct = FALSE)
+  
+  # Compute Z from p-value (two-tailed)
+  z <- qnorm(test$p.value / 2, lower.tail = FALSE)
+  
+  # Rank-biserial correlation r
+  r <- z / sqrt(length(x))
+  
+  # Epsilon squared
+  epsilon2 <- r^2
+  
+  return(epsilon2)
+}
+
+wilcox_epsilon2(file_optimallinethickness$Value_relative[data_optimallinethickness$Section=="Cell-cell-contact"], mu=2)
 
 write.csv2(pv_t.test, "Cell-cell-contact.rel.vs.2.csv")
 
@@ -1986,7 +2011,16 @@ setforplot <- subset(data_optimallinethickness, Section!="Background")
 #         ) %>%  group_by(number) %>%  
 #  mutate(Value_relative = ifelse(Section!="Single-cell segment", Value_bgcor/ Value_bgcor[Section=="Single-cell segment"], Value_relative)
 #  )
+library(rstatix)
+dunn.stats <- setforplot %>%
+  ungroup() %>%
+  dunn_test(Value_bgcor ~ Section, p.adjust.method = "bonferroni")
 
+print(dunn.stats)
+
+
+
+library(rstatix)
 dunn.stats <- setforplot %>%
   ungroup() %>%
   dunn_test(Value_bgcor ~ Section, p.adjust.method = "bonferroni")
@@ -2017,6 +2051,23 @@ median(setforplot$Value_bgcor[setforplot$Section=="Cell-cell-contact"])
 
 median(setforplot$Value_relative[setforplot$Section=="Single-cell segment"])
 median(setforplot$Value_relative[setforplot$Section=="Cell-cell-contact"])
+
+
+
+pairwise.results <- pairwise.wilcox.test(x=setforplot$Value_bgcor, g=setforplot$Section,
+                                         p.adjust.method = "bonferroni"
+)
+
+print(pairwise.results)
+
+library(FSA)
+dunnTest(Value_bgcor~Section, data=setforplot, method="bonferroni")
+
+library(rstatix)
+setforplot %>%  ungroup() %>% rstatix::kruskal_test(Value_bgcor ~ Section) 
+
+setforplot %>%  ungroup() %>% rstatix::kruskal_effsize(Value_bgcor ~ Section) 
+
 
 
 ## 5b. Plot multipanel image of plot profiles----
@@ -2243,6 +2294,12 @@ data_optimallinethickness <- data_optimallinethickness %>% filter(Section!="Back
 superviolin <- data_optimallinethickness %>% ungroup() %>%  dplyr::select(Value_bgcor, expnr, Section) %>%  filter(Section!="Background") 
 write.csv(x=superviolin, "superviolin.csv")
 
+
+library(rstatix)
+superviolin %>%  ungroup() %>% rstatix::kruskal_test(Value_bgcor ~ Section) 
+superviolin %>%  ungroup() %>% rstatix::kruskal_effsize(Value_bgcor ~ Section) 
+
+
 summary_perexp <- data_optimallinethickness %>% ungroup() %>% group_by(expnr, Section) %>%  summarise(Value_realtive = mean(Value_bgcor)) %>% filter(Section!="Background")
 
 shapiro.test(data_optimallinethickness$Value_bgcor[data_optimallinethickness$Section=="Single-cell segment"])
@@ -2250,6 +2307,9 @@ shapiro.test(file_optimallinethickness$Value_relative[file_optimallinethickness$
 
 wilcox.test(file_optimallinethickness$Value_relative[file_optimallinethickness$Section=="Cell-cell-contact"], mu = 2)
 wilcox.test(data_optimallinethickness$Value_relative[data_optimallinethickness$Section=="Cell-cell-contact"], mu = 2)
+
+
+t.test(file_optimallinethickness$Value_relative[file_optimallinethickness$Section=="Cell-cell-contact"], mu = 2)
 
 
 median(data_optimallinethickness$Value_relative[data_optimallinethickness$Section=="Cell-cell-contact"])
@@ -2271,7 +2331,7 @@ pairwise_result <- pairwise.t.test(data_optimallinethickness$Value_bgcor, data_o
 print(pairwise_result)
 
 
-summary_perexp <- data_optimallinethickness %>% ungroup() %>% group_by(expnr, Section) %>%  summarise(Value_bgcor = mean(Value_bgcor)) %>% filter(Section!="Background")
+summary_perexp <- data_optimallinethickness %>% ungroup() %>% group_by(expnr, Section) %>%  dplyr::summarise(Value_bgcor = mean(Value_bgcor)) %>% filter(Section!="Background")
 
 
 
