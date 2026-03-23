@@ -1292,6 +1292,18 @@ geom_line(aes(group=RoiNR, color=as.factor(ExpNR)))+
 print(trajectory_oneplot)
 
 
+
+
+show <- summary %>%
+  ungroup() %>%
+  arrange(Total_region) %>%
+  dplyr::select(Total_region, X_micron_transitionmid, t_half) %>%
+  mutate(
+    X_micron_transitionmid = round(X_micron_transitionmid, 6)
+  )
+
+print(show, n = 1000)
+
 ## extract boxplot statistics 
 boxplot_stats <- summary %>%
   ungroup() %>%
@@ -1402,6 +1414,17 @@ violins_percell <- ggplot(subset(summary_percell), aes(x=interaction(Total_regio
   facet_wrap(.~Channel)+
   theme(legend.position = "none")
 print(violins_percell)
+
+
+summary_percell <- summary_percell %>% ungroup() %>%  group_by(ImageNR, ExpNR) %>%  mutate(Singlecell_intensity = mean(Intensity_bgcor[Total_region=="Single-cell-segment"]),
+                                                                                           Value_relative = Intensity_bgcor / mean(Intensity_bgcor[Total_region=="Single-cell-segment"]))
+
+gcx_vs_thalf <- ggplot(subset(summary_percell), aes(x=Intensity_bgcor, y=t_half))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  facet_wrap(.~Total_region)
+
+print(gcx_vs_thalf)
 
 selection <- summary_percell %>% ungroup() %>% arrange(Total_region) %>% dplyr::select(Total_region, t_half)
 print(selection,n=130)

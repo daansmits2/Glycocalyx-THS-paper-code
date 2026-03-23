@@ -1993,6 +1993,11 @@ example <- ggplot(data=example_subset,aes(x=X_micron_normalized))+
   print(overview)
   
   
+  show <- exampleplots %>%  ungroup() %>%  arrange(number, X_micron_normalized) %>% dplyr::select(number, X_micron_normalized, Value_relative)
+  
+  print(show, n=200)
+  
+  
   
   
 ## 5a. Violin plot of MFI vs. Section ----

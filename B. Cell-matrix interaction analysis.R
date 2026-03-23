@@ -3466,6 +3466,19 @@ for(u in 1:length(unique_numbers)){
   dev.off()
   
   
+  fname <- paste0(
+    "Lineplot_", unique_number, "_",
+    paste0(unique(sub$CellNR)), "_",
+    paste0(unique(sub$RoiNR)), "_",
+    paste0(unique(sub$Orientation))
+  )
+  
+  
+  png(paste0(fname, ".png"), width = 16, height = 10, units = "cm", res = 300)
+  print(lineplot)
+  dev.off()
+  
+  
   if(unique(sub$Orientation=="Bleb")){
     
     lengthlabels.bleb.example.table <- sub %>% ungroup() %>% 
@@ -3482,13 +3495,26 @@ for(u in 1:length(unique_numbers)){
   
   
   
-  
 }
 
 
 
   
-  
+selectednumber <- 157
+
+show <- subset(protrusion_data, number == selectednumber)
+
+show <- show %>%  mutate(B1int_max = B1int / max(B1int),
+                         Gcx_max = Gcx/ max(Gcx)
+                         )
+
+show <- show %>% ungroup() %>%   dplyr::select(X_micron, B1int, Gcx)
+
+print(show, n=1000)
+
+
+
+
   
 
    ## bleb data -  save plot of combined lines of Gcx and B1 integrin intensity profiles------
@@ -4272,8 +4298,30 @@ clusterproperties <- clusterproperties %>%  filter(Length_label!="Cell body")
   
   
   
-   bleb.b1int <- compare.data(clusterproperties, "Bleb")+   scale_x_discrete(labels = c("Peribleb zone", "Neck", "Bleb", "Apex")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
-  retraction.b1int <- compare.data(clusterproperties, "Retraction fiber")+   scale_x_discrete(labels = c("Base", "Shaft", "Tip")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
+   bleb.b1int <- compare.data(clusterproperties, "Bleb")+   scale_x_discrete(labels = c("Peribleb zone", "Neck", "Bleb", "Apex")) +
+     theme(axis.text.x = element_text(angle = 45, hjust=1))
+  
+   
+   library(rstatix)
+   
+   blebs <- clusterproperties %>%  dplyr::filter(Orientation=="Bleb")
+   
+   
+   pairwise.results <- pairwise.wilcox.test(x=blebs$Gcx_cellbody_corrected, g=blebs$Length_label,p.adjust.method = "bonferroni")
+   print(pairwise.results)
+   
+   
+   blebs %>%  ungroup() %>% rstatix::kruskal_test(B1int_cellbody_corrected ~ Length_label) 
+   blebs %>%  ungroup() %>% rstatix::kruskal_effsize(B1int_cellbody_corrected ~ Length_label)
+   
+   library(FSA)
+   dt<- dunnTest(B1int_cellbody_corrected ~ Length_label, data= blebs, method="bonferroni")
+   dt$res$P.adj <- formatC(dt$res$P.adj, format = "f", digits = 6)
+   print(dt)
+   
+   
+   
+   retraction.b1int <- compare.data(clusterproperties, "Retraction fiber")+   scale_x_discrete(labels = c("Base", "Shaft", "Tip")) +theme(axis.text.x = element_text(angle = 45, hjust=1))
   
 
   
@@ -5529,6 +5577,15 @@ Fc.signallocal <- Gcx.signal/Gcx.local.bg
    theme(legend.position="none")
  
  print(violin.Gcx.enrichment)
+ 
+ 
+ 
+ library(rstatix)
+ clusterproperties %>%  ungroup() %>% rstatix::kruskal_test(Gcx_local_enrichment ~ Gcx_content_classification_localbg) 
+ clusterproperties %>%  ungroup() %>% rstatix::kruskal_effsize(Gcx_local_enrichment ~ Gcx_content_classification_localbg)
+ 
+ library(FSA)
+ dunnTest(Gcx_local_enrichment~Gcx_content_classification_localbg, data= clusterproperties, method="bonferroni")
  
  
  Gcx.enrichment.together <- plot_grid(Gcx.vs.Gcxenrichment.graph, print(violin.Gcx.enrichment), ncol=1, axis="b")+
